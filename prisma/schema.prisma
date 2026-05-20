@@ -1,0 +1,115 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
+  name      String?
+  createdAt DateTime   @default(now())
+  exercises Exercise[]
+  workouts  Workout[]
+}
+
+model Category {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique  // "strength", "cardio", etc.
+  exercises Exercise[]
+}
+
+model Equipment {
+  id        Int                 @id @default(autoincrement())
+  name      String              @unique  // "barbell", "dumbbell", etc.
+  exercises ExerciseEquipment[]
+}
+
+model MuscleGroup {
+  id      Int      @id @default(autoincrement())
+  name    String   @unique  // "arms", "legs", "chest", etc.
+  muscles Muscle[]
+}
+
+model Muscle {
+  id            Int               @id @default(autoincrement())
+  name          String            @unique  // "biceps", "triceps", etc.
+  muscleGroupId Int
+  muscleGroup   MuscleGroup?      @relation(fields: [muscleGroupId], references: [id])
+  exercises     ExerciseMuscle[]
+}
+
+model Exercise {
+  id                Int                   @id @default(autoincrement())
+  name              String  
+  description       String? 
+  video             String? 
+  userId            Int?                  // null = global, set = user created
+  user              User?                 @relation(fields: [userId], references: [id])
+  categoryId        Int?  
+  category          Category?             @relation(fields: [categoryId], references: [id])
+  instructions      String[]
+  variationsOn      String[]              // names of exercises this is a variation of
+  createdAt         DateTime              @default(now())
+  muscles           ExerciseMuscle[]
+  equipment         ExerciseEquipment[]
+  workoutExercises  WorkoutExercise[]
+
+  @@unique([name, userId])              // same name allowed for different users
+}
+
+model ExerciseMuscle {
+  exerciseId  Int
+  muscleId    Int
+  exercise    Exercise  @relation(fields: [exerciseId], references: [id])
+  muscle      Muscle    @relation(fields: [muscleId], references: [id])
+  isPrimary   Boolean   @default(true)
+
+  @@id([exerciseId, muscleId])
+}
+
+model ExerciseEquipment {
+  exerciseId  Int
+  equipmentId Int
+  exercise    Exercise  @relation(fields: [exerciseId], references: [id])
+  equipment   Equipment @relation(fields: [equipmentId], references: [id])
+
+  @@id([exerciseId, equipmentId])
+}
+
+model Workout {
+  id        Int               @id @default(autoincrement())
+  userId    Int
+  user      User              @relation(fields: [userId], references: [id])
+  date      DateTime          @default(now())
+  notes     String?
+  exercises WorkoutExercise[]
+}
+
+model WorkoutExercise {
+  id         Int     @id @default(autoincrement())
+  workoutId  Int
+  workout    Workout @relation(fields: [workoutId], references: [id])
+  exerciseId Int
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+  order      Int?    // track exercise order within the workout
+  notes      String?
+  sets       Set[]
+}
+
+model Set {
+  id                Int             @id @default(autoincrement())
+  workoutExerciseId Int
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id])
+  reps              Int?
+  weight            Float?
+  duration          Int?
+  notes             String?
+}
